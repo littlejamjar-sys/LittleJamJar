@@ -1,0 +1,34 @@
+name: Deploy to Pi
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Restart application
+        run: |
+          # Resolve pm2 from the nvm/node path used on the Pi
+          PM2=$(which pm2 2>/dev/null || echo "$HOME/.npm-global/bin/pm2")
+          if [ ! -x "$PM2" ]; then
+            echo "pm2 not found, trying common locations..."
+            for loc in /usr/local/bin/pm2 /usr/bin/pm2 ~/.npm-global/bin/pm2 ~/.bun/bin/pm2; do
+              [ -x "$loc" ] && PM2="$loc" && break
+            done
+          fi
+          echo "Using pm2 at: $PM2"
+          $PM2 restart all || $PM2 start npm --name "turfrig" -- start
