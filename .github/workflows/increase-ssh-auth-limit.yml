@@ -1,0 +1,23 @@
+name: Increase SSH Auth Limit
+
+on:
+  workflow_dispatch
+
+jobs:
+  increase-limit:
+    name: Increase SSH MaxAuthTries
+    runs-on: self-hosted
+    timeout-minutes: 5
+
+    steps:
+      - name: Backup and Update SSH Config
+        run: sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup && sudo sed -i '/^MaxAuthTries/d' /etc/ssh/sshd_config && echo "MaxAuthTries 50" | sudo tee -a /etc/ssh/sshd_config
+
+      - name: Validate SSH Config
+        run: sudo sshd -t && echo "SSH config validation passed"
+
+      - name: Restart SSH Service
+        run: sudo systemctl restart ssh && sleep 2 && systemctl status ssh
+
+      - name: Verify Setting
+        run: grep -i maxauthtries /etc/ssh/sshd_config || echo "MaxAuthTries setting not found"
