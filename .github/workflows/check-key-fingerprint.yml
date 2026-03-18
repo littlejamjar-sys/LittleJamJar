@@ -1,0 +1,25 @@
+name: Check Key Fingerprint
+
+on:
+  workflow_dispatch
+
+jobs:
+  check:
+    name: Check Key Details
+    runs-on: self-hosted
+
+    steps:
+      - name: Show Key Details
+        run: |
+          echo "=== Authorized Keys on Pi ==="
+          cat ~/.ssh/authorized_keys
+          echo ""
+          echo "=== Key Fingerprints ==="
+          while IFS= read -r line; do
+            if [[ ! -z "$line" && ! "$line" =~ ^# ]]; then
+              echo "Key: $line"
+              # Use ssh-keygen to compute fingerprint
+              echo "$line" | ssh-keygen -lf /dev/stdin 2>&1 || echo "Could not compute fingerprint"
+              echo "---"
+            fi
+          done < ~/.ssh/authorized_keys
