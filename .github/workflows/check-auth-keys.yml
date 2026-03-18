@@ -1,0 +1,25 @@
+name: Check Auth Keys
+
+on:
+  workflow_dispatch
+
+jobs:
+  check:
+    name: Check Authorized Keys
+    runs-on: self-hosted
+
+    steps:
+      - name: Show Authorized Keys with Hex
+        run: |
+          echo "=== Authorized Keys Content ==="
+          cat ~/.ssh/authorized_keys | while IFS= read -r line; do
+            echo "Key: $line"
+            # Extract just the key portion (second field)
+            key=$(echo "$line" | cut -d' ' -f2)
+            echo "Key portion: $key"
+            echo "---"
+          done
+          echo ""
+          echo "=== Compare with expected key ==="
+          echo "Expected key from Winston:"
+          echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIwqI3NKbR9Hj2RVG6Ua4APjenPgQqSX3pg5eXloQ6iU openclaw-sandbox@winston-VirtualBox"
