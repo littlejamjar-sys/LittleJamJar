@@ -1,0 +1,30 @@
+name: Fix SSH Service
+
+on:
+  workflow_dispatch
+
+jobs:
+  fix-ssh:
+    name: Restart SSH and Verify
+    runs-on: self-hosted
+
+    steps:
+      - name: Restart SSH Service
+        run: |
+          echo "=== Current SSH Status ==="
+          systemctl status ssh 2>&1 || systemctl status sshd 2>&1 || echo "SSH service not found"
+          echo ""
+          echo "=== Restarting SSH service ==="
+          sudo systemctl restart ssh || sudo systemctl restart sshd || echo "Failed to restart SSH"
+          echo ""
+          echo "=== Waiting for SSH to start ==="
+          sleep 2
+          echo ""
+          echo "=== SSH Status After Restart ==="
+          systemctl status ssh 2>&1 || systemctl status sshd 2>&1 || echo "SSH service check failed"
+          echo ""
+          echo "=== Checking SSH ports ==="
+          ss -tlnp | grep -i ssh || netstat -tlnp | grep -i ssh || echo "SSH ports check failed"
+          echo ""
+          echo "=== SSH Service Logs ==="
+          journalctl -u ssh -n 20 --no-pager 2>&1 || journalctl -u sshd -n 20 --no-pager 2>&1 || echo "Could not retrieve logs"
