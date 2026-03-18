@@ -1,0 +1,45 @@
+name: Fix SSH Auth Key
+
+on:
+  workflow_dispatch
+
+jobs:
+  fix:
+    name: Update SSH Key
+    runs-on: self-hosted
+
+    steps:
+      - name: Backup Current Authorized Keys
+        run: |
+          if [ -f ~/.ssh/authorized_keys ]; then
+            cp ~/.ssh/authorized_keys ~/.ssh/authorized_keys.backup
+            echo "Backed up authorized_keys"
+          fi
+
+      - name: Add Winston Public Key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          
+          # The correct key from Winston
+          WINSTON_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIwqI3NKbR9Hj2RVG6Ua4APjenPgQqSX3pg5eXloQ6iU openclaw-sandbox@winston-VirtualBox"
+          
+          # Remove the old/wrong key with same comment if it exists
+          if [ -f ~/.ssh/authorized_keys ]; then
+            grep -v "openclaw-sandbox@winston-VirtualBox" ~/.ssh/authorized_keys > ~/.ssh/authorized_keys.tmp
+            mv ~/.ssh/authorized_keys.tmp ~/.ssh/authorized_keys
+          fi
+          
+          # Add the correct key
+          echo "$WINSTON_KEY" >> ~/.ssh/authorized_keys
+          chmod 600 ~/.ssh/authorized_keys
+          
+          echo "Added correct Winston public key"
+
+      - name: Verify Authorized Keys
+        run: |
+          echo "=== Current Authorized Keys ==="
+          cat ~/.ssh/authorized_keys
+          echo ""
+          echo "=== File Permissions ==="
+          ls -la ~/.ssh/authorized_keys
