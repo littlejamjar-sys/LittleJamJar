@@ -1,0 +1,53 @@
+name: SBOM Generation
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+    name: Generate Software Bill of Materials
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate package-lock.json if missing
+        run: npm install --package-lock-only --silent 2>/dev/null || true
+
+      - name: Install CycloneDX npm plugin
+        run: npm install --save-dev @cyclonedx/npm
+
+      - name: Generate CycloneDX SBOM
+        run: npx cyclonedx-npm --output-file sbom.xml
+        continue-on-error: true
+
+      - name: Generate SBOM with npm list (fallback)
+        run: |
+          npm list --json > sbom.json 2>/dev/null || echo '{}' > sbom.json
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.*
+          retention-days: 90
+
+      - name: Create SBOM release asset
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: sbom.*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
