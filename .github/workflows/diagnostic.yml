@@ -1,0 +1,46 @@
+name: SSH Diagnostic
+
+on:
+  workflow_dispatch
+
+jobs:
+  diagnose:
+    name: Run Diagnostic
+    runs-on: self-hosted
+
+    steps:
+      - name: SSH Service Status
+        run: |
+          echo "=== SSH Diagnostic Report ==="
+          echo "Date: $(date)"
+          echo ""
+          echo "=== Checking SSH service ==="
+          systemctl status ssh 2>&1 || systemctl status sshd 2>&1 || echo "SSH service check failed"
+          echo ""
+          echo "=== SSH listening ports ==="
+          ss -tlnp | grep -i ssh || echo "No SSH ports found"
+          echo ""
+          echo "=== Authorized keys ==="
+          if [ -f ~/.ssh/authorized_keys ]; then
+            echo "Found authorized_keys with $(wc -l < ~/.ssh/authorized_keys) entries:"
+            cat ~/.ssh/authorized_keys
+          else
+            echo "No authorized_keys found"
+          fi
+          echo ""
+          echo "=== SSH key permissions ==="
+          ls -la ~/.ssh/ || echo "SSH dir not found"
+          echo ""
+          echo "=== Checking Cloudflare tunnel ==="
+          systemctl status cloudflared 2>&1 || echo "Cloudflared service check failed"
+          ps aux | grep -i cloudflared | grep -v grep || echo "No cloudflared process found"
+          echo ""
+          echo "=== Cloudflare tunnel config ==="
+          if [ -f /etc/cloudflared/config.yml ]; then
+            cat /etc/cloudflared/config.yml
+          else
+            echo "No /etc/cloudflared/config.yml found"
+          fi
+          echo ""
+          echo "=== Running user ==="
+          id
